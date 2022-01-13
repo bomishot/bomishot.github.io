@@ -1,0 +1,1287 @@
+# part7. 머신러닝 데이터 분석
+
+## 3. 분류
+* 분류 알고리즘 : 예측하려는 대상의 속성(X)를 입력받고, 목표 변수가 갖고 있는 카테고리(범주형) 값 중에서 어느 한 값으로 분류하여 예측한다.
+* 지도 학습 : 훈련 데이터에 목표 변수 값(0/1)을 함께 입력받는다.
+* 이 모형은 목표 변수가 카테고리 값을 가질때 사용
+* ex) 고객 분류, 스팸 메일 필터링, 질병 진단, 음성 인식 등
+* 알고리즘 : KNN, SVM, Decision Tree, Logistic Regression 등 다양하다.
+* 우리는 KNN, SVM, Decision Tree 세 가지 알고리즘에 대해 알아보자!
+
+### <1> KNN (k-Nearest-Neighbors)
+* k개의 가까운 이웃
+* 새로운 관측값이 주어지면, 기존 데이터 중에서 가장 속성이 비슷한 k개의 이웃을 먼저 찾는다
+* 가까운 이웃들이 갖고 있는 목표 값과 같은 값으로 분류하여 예측한다.
+* k값에 따라 예측의 정확도가 달라지므로, 적절한 k값을 찾는 것은 매우 중요하다!
+
+* Step 1 - 데이터 준비
+
+
+```python
+import pandas as pd
+import seaborn as sns
+
+df = sns.load_dataset('titanic')
+df.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survived</th>
+      <th>pclass</th>
+      <th>sex</th>
+      <th>age</th>
+      <th>sibsp</th>
+      <th>parch</th>
+      <th>fare</th>
+      <th>embarked</th>
+      <th>class</th>
+      <th>who</th>
+      <th>adult_male</th>
+      <th>deck</th>
+      <th>embark_town</th>
+      <th>alive</th>
+      <th>alone</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>3</td>
+      <td>male</td>
+      <td>22.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>7.2500</td>
+      <td>S</td>
+      <td>Third</td>
+      <td>man</td>
+      <td>True</td>
+      <td>NaN</td>
+      <td>Southampton</td>
+      <td>no</td>
+      <td>False</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1</td>
+      <td>female</td>
+      <td>38.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>71.2833</td>
+      <td>C</td>
+      <td>First</td>
+      <td>woman</td>
+      <td>False</td>
+      <td>C</td>
+      <td>Cherbourg</td>
+      <td>yes</td>
+      <td>False</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>3</td>
+      <td>female</td>
+      <td>26.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7.9250</td>
+      <td>S</td>
+      <td>Third</td>
+      <td>woman</td>
+      <td>False</td>
+      <td>NaN</td>
+      <td>Southampton</td>
+      <td>yes</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1</td>
+      <td>1</td>
+      <td>female</td>
+      <td>35.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>53.1000</td>
+      <td>S</td>
+      <td>First</td>
+      <td>woman</td>
+      <td>False</td>
+      <td>C</td>
+      <td>Southampton</td>
+      <td>yes</td>
+      <td>False</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0</td>
+      <td>3</td>
+      <td>male</td>
+      <td>35.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>8.0500</td>
+      <td>S</td>
+      <td>Third</td>
+      <td>man</td>
+      <td>True</td>
+      <td>NaN</td>
+      <td>Southampton</td>
+      <td>no</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+* Step 2 - 데이터 탐색
+
+
+```python
+df.info()
+```
+
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 891 entries, 0 to 890
+    Data columns (total 15 columns):
+     #   Column       Non-Null Count  Dtype   
+    ---  ------       --------------  -----   
+     0   survived     891 non-null    int64   
+     1   pclass       891 non-null    int64   
+     2   sex          891 non-null    object  
+     3   age          714 non-null    float64 
+     4   sibsp        891 non-null    int64   
+     5   parch        891 non-null    int64   
+     6   fare         891 non-null    float64 
+     7   embarked     889 non-null    object  
+     8   class        891 non-null    category
+     9   who          891 non-null    object  
+     10  adult_male   891 non-null    bool    
+     11  deck         203 non-null    category
+     12  embark_town  889 non-null    object  
+     13  alive        891 non-null    object  
+     14  alone        891 non-null    bool    
+    dtypes: bool(2), category(2), float64(2), int64(4), object(5)
+    memory usage: 80.6+ KB
+    
+
+age, deck, embarked, embark_town 열에 누락데이터가 있는 것을 알 수 있다!  
+-> 데이터의 특성, 분석 목표에 맞추어 누락 데이터를 처리하자!  
+<br>
+
+* **'deck'** : 객실 데크 위치를 나타낸다.
+    * 유효한 값이 203개뿐이다.
+    * 전체 891명의 승객 중에서 688개의 누락데이터가 있어 688명의 데이터가 존재하지 않는다는 뜻이다.
+    * -> 'deck'열을 제거하자!
+    <br>
+    
+* **'embark_town'** : 승선도시를 나타낸다.
+    * 'embarked'와 동일한 의미를 나타내 중복이다.
+    * -> 'embark_town'열을 제거하자! 
+
+
+```python
+# NaN값이 많은 deck 열 삭제, embarked와 내용이 겹치는 embark_town열 삭제
+rdf = df.drop(['deck', 'embark_town'], axis=1)
+rdf.columns
+```
+
+
+
+
+    Index(['survived', 'pclass', 'sex', 'age', 'sibsp', 'parch', 'fare',
+           'embarked', 'class', 'who', 'adult_male', 'alive', 'alone'],
+          dtype='object')
+
+
+
+* **'age'** : 승객의 나이를 나타낸다.
+    * 누락데이터가 177개 포함되어있다. 
+    * 분석에 포함시켜야하는 중요한 속성으로 판단될 경우, 예측 결과에 영향을 최소화하는 방법을 선택해야한다.
+    * 평균나이로 치환하는 방법도 있지만 누락데이터가 있는 행을 모두 제거하자!
+    * 즉, 177명의 승객 데이터를 포기하고, 나이 데이터가 있는 714명의 승객만을 분석 대상으로 하자.
+
+
+```python
+# age열에 나이데이터가 없는 행들 모두 삭제 
+rdf = rdf.dropna(subset=['age'], how='any', axis=0)
+len(rdf)
+```
+
+
+
+
+    714
+
+
+
+* **'embarked'**: 승객들이 타이타닉호에 탑승한 도시명의 첫 글자
+    * 누락데이터가 2개에 불과하므로, 탑승한 승객이 가장 많은 도시명으로 치환
+    * value_counts() , idxmax() 메소드로, 승객이 가장 많이 탑승한 도시명의 첫 글자가 'S'라는 것 알아냄.
+    * describe(include='all') 메소드로, 'embarked'열의 최빈값(top)을 확인해도 같은 결과를 얻음.
+    * 'embarked'열에 fillna() 메소드로, 누락데이터를 'S'값으로 바꾼다.
+
+
+```python
+most_freq = rdf['embarked'].value_counts(dropna=True).idxmax()
+most_freq
+```
+
+
+
+
+    'S'
+
+
+
+
+```python
+rdf.describe(include='all')
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survived</th>
+      <th>pclass</th>
+      <th>sex</th>
+      <th>age</th>
+      <th>sibsp</th>
+      <th>parch</th>
+      <th>fare</th>
+      <th>embarked</th>
+      <th>class</th>
+      <th>who</th>
+      <th>adult_male</th>
+      <th>alive</th>
+      <th>alone</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>714.000000</td>
+      <td>714.000000</td>
+      <td>714</td>
+      <td>714.000000</td>
+      <td>714.000000</td>
+      <td>714.000000</td>
+      <td>714.000000</td>
+      <td>712</td>
+      <td>714</td>
+      <td>714</td>
+      <td>714</td>
+      <td>714</td>
+      <td>714</td>
+    </tr>
+    <tr>
+      <th>unique</th>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>top</th>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>male</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>S</td>
+      <td>Third</td>
+      <td>man</td>
+      <td>True</td>
+      <td>no</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>freq</th>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>453</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>554</td>
+      <td>355</td>
+      <td>413</td>
+      <td>413</td>
+      <td>424</td>
+      <td>404</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>0.406162</td>
+      <td>2.236695</td>
+      <td>NaN</td>
+      <td>29.699118</td>
+      <td>0.512605</td>
+      <td>0.431373</td>
+      <td>34.694514</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>0.491460</td>
+      <td>0.838250</td>
+      <td>NaN</td>
+      <td>14.526497</td>
+      <td>0.929783</td>
+      <td>0.853289</td>
+      <td>52.918930</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>0.000000</td>
+      <td>1.000000</td>
+      <td>NaN</td>
+      <td>0.420000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>0.000000</td>
+      <td>1.000000</td>
+      <td>NaN</td>
+      <td>20.125000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>8.050000</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>0.000000</td>
+      <td>2.000000</td>
+      <td>NaN</td>
+      <td>28.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>15.741700</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>1.000000</td>
+      <td>3.000000</td>
+      <td>NaN</td>
+      <td>38.000000</td>
+      <td>1.000000</td>
+      <td>1.000000</td>
+      <td>33.375000</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>1.000000</td>
+      <td>3.000000</td>
+      <td>NaN</td>
+      <td>80.000000</td>
+      <td>5.000000</td>
+      <td>6.000000</td>
+      <td>512.329200</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+rdf['embarked'].fillna(most_freq, inplace=True)
+rdf.info()
+```
+
+    <class 'pandas.core.frame.DataFrame'>
+    Int64Index: 714 entries, 0 to 890
+    Data columns (total 13 columns):
+     #   Column      Non-Null Count  Dtype   
+    ---  ------      --------------  -----   
+     0   survived    714 non-null    int64   
+     1   pclass      714 non-null    int64   
+     2   sex         714 non-null    object  
+     3   age         714 non-null    float64 
+     4   sibsp       714 non-null    int64   
+     5   parch       714 non-null    int64   
+     6   fare        714 non-null    float64 
+     7   embarked    714 non-null    object  
+     8   class       714 non-null    category
+     9   who         714 non-null    object  
+     10  adult_male  714 non-null    bool    
+     11  alive       714 non-null    object  
+     12  alone       714 non-null    bool    
+    dtypes: bool(2), category(1), float64(2), int64(4), object(4)
+    memory usage: 63.6+ KB
+    
+
+완료!
+
+* Step 3 - 속성 선택 
+    * 변수로 사용할 후보 열 선택
+    * **(Y) 예측 변수 : 생존 여부를 나타내는 'survived'열**
+    * **(X) 설명 변수 : 후보 열 6개 포함**
+
+
+```python
+ndf = rdf[['survived', 'pclass', 'sex', 'age', 'sibsp', 'parch', 'embarked']]
+ndf.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survived</th>
+      <th>pclass</th>
+      <th>sex</th>
+      <th>age</th>
+      <th>sibsp</th>
+      <th>parch</th>
+      <th>embarked</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>3</td>
+      <td>male</td>
+      <td>22.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>S</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1</td>
+      <td>female</td>
+      <td>38.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>C</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>3</td>
+      <td>female</td>
+      <td>26.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>S</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1</td>
+      <td>1</td>
+      <td>female</td>
+      <td>35.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>S</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0</td>
+      <td>3</td>
+      <td>male</td>
+      <td>35.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>S</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+* KNN 모형에 적용하기 위해, 'sex'열과 'embarked'열을 범주형 데이터에서 숫자형으로 변환한다.  
+    * 이 과정을 **더미변수를 만든다**고하고 **원핫인코딩(one-hot-encoding)**이라고 한다.
+* 'sex'열에는 'male'/'female' 값을 가지는 2개의 더미 변수가 나타난다.
+* 'embarked'열에는 3개의 더미변수가 만들어진다.
+    * **prefix='town'** 옵션 : 열 이름에 접두어 'town'을 붙인다.
+* concat() 함수를 이용하여 생성된 더미 변수 열을 기존 데이터프레임에 연결한다.
+* 기존 'sex'열과 'embarked'열을 삭제한다.
+
+
+```python
+# 원핫인코딩 - 모형이 인식할 수 있도록 범주형 데이터를 숫자형 데이터로 변환
+onehot_sex = pd.get_dummies(ndf['sex'])
+ndf = pd.concat([ndf, onehot_sex], axis=1)
+
+onehot_embarked = pd.get_dummies(ndf['embarked'], prefix='town')
+ndf = pd.concat([ndf, onehot_embarked], axis=1)
+
+ndf.drop(['sex', 'embarked'], axis=1, inplace=True)
+ndf.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survived</th>
+      <th>pclass</th>
+      <th>age</th>
+      <th>sibsp</th>
+      <th>parch</th>
+      <th>female</th>
+      <th>male</th>
+      <th>town_C</th>
+      <th>town_Q</th>
+      <th>town_S</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>3</td>
+      <td>22.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1</td>
+      <td>38.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>3</td>
+      <td>26.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1</td>
+      <td>1</td>
+      <td>35.0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0</td>
+      <td>3</td>
+      <td>35.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+성공적으로 열에 female/male/town_C/town_Q/town_S 가 추가된 것을 볼 수 있다!
+
+* Step 4 - 훈련/검증 데이터 분할
+    * 데이터셋 구분 - train data/ test data 
+    * X,Y 할당
+    * 정규화 : 설명 변수 열들이 갖는 데이터의 상대적 크기 차이를 없애기 위해.
+        * sklearn의 preprocessing 모듈 사용
+    * train_test_split() 메소드로 훈련 데이터, 검증 데이터 분할 (검증 30% = 7:3 비율)
+
+
+```python
+# 속성(변수) 선택 X, Y
+X = ndf[['pclass', 'age', 'sibsp', 'parch', 'female', 'male', 'town_C', 'town_Q', 'town_S']]
+Y = ndf['survived']
+
+# 설명 변수 데이터를 정규화(normalization)
+from sklearn import preprocessing
+X = preprocessing.StandardScaler().fit(X).transform(X)
+
+# 훈련 데이터/ 검증 데이터 분할
+# train data/ test data ( 7:3 비율 )
+from sklearn.model_selection import train_test_split
+X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size=0.3, random_state=10)
+
+print('train data 개수: ', X_train.shape)
+print('test data 개수: ', X_test.shape)
+```
+
+    train data 개수:  (499, 9)
+    test data 개수:  (215, 9)
+    
+
+* 분류 모형의 예측력 평가 지표
+    * 1. **Confusion Tree**
+        * **예측값** T  TP  FP
+        * -------  F   FN  TN
+        * **실제값**   ---T---F
+    * 2. **Precision(정확도)**
+        * TP / TP+FP
+        * 예측값이 T 중, 실제값이 T일 확률
+    * 3. **Recall(재현율)**
+        * TP / TP+FN
+        * 실제값이 T 중, 예측값이 T일 확률
+    * 4. **F1-Score(F1 지표)**
+        * 2 x Precision x Recall / Precision+Recall
+        * 정확도, 재현율이 균등하게 반영될 수 있도록하는 조화 평균
+
+* Step 5 - 모형 학습 및 검증
+    * sklearn의 neighbors 모듈 사용
+    * KNeighborsClassifier() 함수로 KNN 분류 모형 객체를 생성하여 변수 knn에 저장
+    * n_neighbors=5와 같이 이웃 숫자를 5개로 설정
+    * 훈련데이터(X_train, Y_train)를 fit()메소드로 모형을 학습
+    * 검증데이터(X_test)를 predict() 메소드에 전달하여 모형이 분류한 예측 변수 Y_hat에 저장
+    * Y_hat을 실제 값인 Y_test와 비교
+
+
+```python
+# KNN 분류 모형
+# sklearn의 neighbors 모듈 사용
+from sklearn.neighbors import KNeighborsClassifier
+
+# 모형 객체 생성
+knn = KNeighborsClassifier(n_neighbors=5)
+
+# train데이터를 가지고 모형 학습
+knn.fit(X_train, Y_train)
+
+# test데이터를 가지고 Y_hat 예측(분류)
+Y_hat = knn.predict(X_test)
+
+print(Y_hat[0:10])
+print(Y_test.values[0:10])
+
+```
+
+    [0 0 1 0 0 1 1 1 0 0]
+    [0 0 1 0 0 1 1 1 0 0]
+    
+
+* 모형의 예측 능력 평가 방법
+    * metrics 모듈의 confusion_matrix 함수로 Confusion Matrix 계산
+    * 이 함수는 [[TN, FP], [FN, TP]] 형태로 반환됨.
+
+
+```python
+# 1.Confusion Tree 계싼
+from sklearn import metrics 
+knn_matrix = metrics.confusion_matrix(Y_test, Y_hat)
+knn_matrix
+```
+
+
+
+
+    array([[109,  16],
+           [ 25,  65]], dtype=int64)
+
+
+
+결과를 보면, 전체 215명의 승객 중에서   
+* TN : 109명은 미생존자로 정확하게 예측하였다.  
+* FP : 16명은 미생존자지만 생존자라고 잘못 예측하였다.
+* FN : 25명은 생존자지만 미생존자라고 잘못 예측하였다.
+* TP : 65명은 생존자로 정확하게 예측하였다.
+
+* 모형 성능 평가 - 2.3.4. Precision / Recall / F1-score 계산
+    * metrics모듈의 classification_report() 함수 사용
+
+
+```python
+knn_report = metrics.classification_report(Y_test, Y_hat)
+print(knn_report)
+```
+
+                  precision    recall  f1-score   support
+    
+               0       0.81      0.87      0.84       125
+               1       0.80      0.72      0.76        90
+    
+        accuracy                           0.81       215
+       macro avg       0.81      0.80      0.80       215
+    weighted avg       0.81      0.81      0.81       215
+    
+    
+
+f1-score을 보면 미생존자의 예측의 정확도는 0.84  
+생존자의 예측의 정확도는 0.76으로 예측력의 차이가 있다.
+<br>
+<br>
+
+
+
+### <2> SVM (Support Vector Machine)
+: 학습을 통해 vector공간을 나누는 경계를 찾음.
+
+* 데이터 준비 (Step1~Step4)
+
+
+```python
+import pandas as pd
+import seaborn as sns
+
+df = sns.load_dataset('titanic')
+
+pd.set_option('display.max_columns',15)
+
+rdf = df.drop(['deck', 'embark_town'], axis=1)
+rdf = rdf.dropna(subset=['age'], axis=0, how='any')
+
+most_freq = rdf['embarked'].value_counts(dropna=True).idxmax()
+rdf['embarked'].fillna(most_freq, inplace=True)
+
+ndf = rdf[['survived', 'pclass', 'sex', 'age', 'sibsp', 'parch', 'embarked']]
+
+onehot_sex = pd.get_dummies(ndf['sex'])
+ndf = pd.concat([ndf, onehot_sex], axis=1)
+
+onehot_embarked = pd.get_dummies(ndf['embarked'], prefix='town')
+ndf = pd.concat([ndf, onehot_embarked], axis=1)
+
+ndf.drop(['sex', 'embarked'], axis=1, inplace=True)
+
+X = ndf[['pclass', 'age', 'sibsp', 'parch', 'female', 'male', 'town_C', 'town_Q', 'town_S']]
+Y = ndf['survived']
+
+from sklearn import preprocessing
+X = preprocessing.StandardScaler().fit(X).transform(X)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=10)
+
+print("train data 수: ", X_train.shape)
+print("test data 수: ", X_test.shape)
+```
+
+    train data 수:  (499, 9)
+    test data 수:  (215, 9)
+    
+
+<br>
+
+* 모형 학습 및 검증
+    * kernel(커넬) : 데이터를 vector공간으로 매핑하는 함수
+
+
+```python
+# sklearn 라이브러리에서 SVM 분류 모형 가져오기 (SVC함수 사용)
+from sklearn import svm
+
+# 모형 객체 생성  (kernel='rbf' 옵션 적용)
+svm_model = svm.SVC(kernel='rbf')
+
+# 모형 학습
+svm_model.fit(X_train, Y_train)
+
+# 예측값 vs 실제값
+Y_hat = svm_model.predict(X_test)
+
+print(Y_hat[0:10])
+print(Y_test.values[0:10])
+```
+
+    [0 0 1 0 0 0 1 0 0 0]
+    [0 0 1 0 0 1 1 1 0 0]
+    
+
+10개 data 중에서 8개 일치
+<br>
+<br>
+
+
+
+
+
+
+```python
+# 모형 성능 평가 - counfusion matrix
+from sklearn import metrics
+svm_matrix = metrics.confusion_matrix(Y_test, Y_hat)
+print(svm_matrix)
+print('\n')
+
+# 모형 성능 평가 - precision, recall, f1-score
+svm_report = metrics.classification_report(Y_test, Y_hat)
+print(svm_report)
+
+```
+
+    [[120   5]
+     [ 35  55]]
+    
+    
+                  precision    recall  f1-score   support
+    
+               0       0.77      0.96      0.86       125
+               1       0.92      0.61      0.73        90
+    
+        accuracy                           0.81       215
+       macro avg       0.85      0.79      0.80       215
+    weighted avg       0.83      0.81      0.81       215
+    
+    
+
+* 전체 215명의 승객 중에서
+    * 미생존자를 정확하게 예측한 사람은 120명
+    * 미생존자를 생존자로 예측한 사람은 5명
+    * 생존자를 미생존자로 예측한 사람은 35명
+    * 생존자를 정확하게 예측한 사람은 55명
+* f1-score를 보면 미생존자(0)의 예측력은 0.86, 생존자(1)의 예측력은 0.73이다.  
+    * KNN 모형의 예측능력과 별 차이가 없네!
+
+### <3> Decision Tree
+* **의사결정 나무**
+* tree구조 사용(node, branch)
+    * 각 node(분기점)마다 목표 값을 가장 잘 분류할 수 있는 속성을 찾아서 배치
+    * 해당 속성이 갖는 값을 활용해 branch(새로운 가지)를 만든다.
+* **Entropy** : 다른 종류의 값들이 섞여 있는 정도
+    * Entropy가 낮을수록, 분류가 잘 된것이다
+    * 일정 수준 이하로 낮아질때까지 과정 반복 
+    * 각 node에서 최적의 속성을 찾기 위한 분류 정도 평가 기준으로 쓰임 (criterian='entropy')
+* level
+    * level이 많아질수록, 모형 학습에 사용하는 train data의 예측의 정확도는 올라간다.
+    * But, 모형이 train data에 대해서만 지나치게 최적화되어, 실제 data 예측 능력이 떨어질 수 있다.
+        * 따라서, 적절한 level값 찾기 중요!
+
+* 데이터 준비 ( 앞서했던 방법과 같다.)
+
+
+```python
+import pandas as pd
+import numpy as np
+
+# Breast cancer(암세포 진단) 데이터셋 가져오기 (출처 : UCI 머신러닝 저장소)
+uci_path = 'https://archive.ics.uci.edu/ml/machine-learning-databases/\
+breast-cancer-wisconsin/breast-cancer-wisconsin.data'
+df = pd.read_csv(uci_path, header=None)
+df.columns = ['id', 'clump', 'cell_size', 'cell_shape','adhesion', 'epithlial', 'bare_nuclei', 'chromatin', 'normal_nucleoli', 'mitoses', 'class']
+df.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>clump</th>
+      <th>cell_size</th>
+      <th>cell_shape</th>
+      <th>adhesion</th>
+      <th>epithlial</th>
+      <th>bare_nuclei</th>
+      <th>chromatin</th>
+      <th>normal_nucleoli</th>
+      <th>mitoses</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1000025</td>
+      <td>5</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1002945</td>
+      <td>5</td>
+      <td>4</td>
+      <td>4</td>
+      <td>5</td>
+      <td>7</td>
+      <td>10</td>
+      <td>3</td>
+      <td>2</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1015425</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>2</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1016277</td>
+      <td>6</td>
+      <td>8</td>
+      <td>8</td>
+      <td>1</td>
+      <td>3</td>
+      <td>4</td>
+      <td>3</td>
+      <td>7</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1017023</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>3</td>
+      <td>2</td>
+      <td>1</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+df.info()
+```
+
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 699 entries, 0 to 698
+    Data columns (total 11 columns):
+     #   Column           Non-Null Count  Dtype 
+    ---  ------           --------------  ----- 
+     0   id               699 non-null    int64 
+     1   clump            699 non-null    int64 
+     2   cell_size        699 non-null    int64 
+     3   cell_shape       699 non-null    int64 
+     4   adhesion         699 non-null    int64 
+     5   epithlial        699 non-null    int64 
+     6   bare_nuclei      699 non-null    object
+     7   chromatin        699 non-null    int64 
+     8   normal_nucleoli  699 non-null    int64 
+     9   mitoses          699 non-null    int64 
+     10  class            699 non-null    int64 
+    dtypes: int64(10), object(1)
+    memory usage: 60.2+ KB
+    
+
+
+```python
+df['bare_nuclei'].unique()
+```
+
+
+
+
+    array(['1', '10', '2', '4', '3', '9', '7', '?', '5', '8', '6'],
+          dtype=object)
+
+
+
+
+```python
+df['bare_nuclei'].replace('?', np.nan, inplace=True)
+df.dropna(subset=['bare_nuclei'], axis=0, inplace=True)
+df['bare_nuclei'] = df['bare_nuclei'].astype('int')
+df.info()
+```
+
+    <class 'pandas.core.frame.DataFrame'>
+    Int64Index: 683 entries, 0 to 698
+    Data columns (total 11 columns):
+     #   Column           Non-Null Count  Dtype
+    ---  ------           --------------  -----
+     0   id               683 non-null    int64
+     1   clump            683 non-null    int64
+     2   cell_size        683 non-null    int64
+     3   cell_shape       683 non-null    int64
+     4   adhesion         683 non-null    int64
+     5   epithlial        683 non-null    int64
+     6   bare_nuclei      683 non-null    int32
+     7   chromatin        683 non-null    int64
+     8   normal_nucleoli  683 non-null    int64
+     9   mitoses          683 non-null    int64
+     10  class            683 non-null    int64
+    dtypes: int32(1), int64(10)
+    memory usage: 61.4 KB
+    
+
+
+```python
+X = df[['clump', 'cell_size', 'cell_shape', 'adhesion', 'epithlial', 'bare_nuclei', 'chromatin', 'normal_nucleoli', 'mitoses']]
+Y = df['class']
+
+from sklearn import preprocessing
+X = preprocessing.StandardScaler().fit(X).transform(X)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=10)
+
+print("train data 개수: ", X_train.shape)
+print("test data 개수: ", X_test.shape)
+```
+
+    train data 개수:  (478, 9)
+    test data 개수:  (205, 9)
+    
+
+<br>
+
+* 모형 학습 및 검증
+
+
+```python
+# sklearn 라이브러리에서 tree 분류 모형 가져오기
+from sklearn import tree
+
+# 모형 객체 생성 ( DecisionTreeClassifier함수 이용)
+model_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=5)
+
+# 모형 학습
+model_tree.fit(X_train, Y_train)
+
+# 예측값 vs 실제값 
+Y_hat = model_tree.predict(X_test)
+
+print(Y_hat[0:10])
+print(Y_test.values[0:10])
+
+# 2: benign(양성) / 4: malignant(약성)
+# 양성 종양의 목표값은 2, 악성 종양은 4이다.
+```
+
+    [4 4 4 4 4 4 2 2 4 4]
+    [4 4 4 4 4 4 2 2 4 4]
+    
+
+
+```python
+# 모형 성능 평가 (confusion matrix)
+from sklearn import metrics
+tree_matrix = metrics.confusion_matrix(Y_test, Y_hat)
+tree_matrix
+```
+
+
+
+
+    array([[127,   4],
+           [  2,  72]], dtype=int64)
+
+
+
+* 양성 종양을 정확히 예측한 TN은 127개
+* 양성 종양인데 악성 종양으로 예측한 FP는 4개
+* 악성 종양인데 양성 종양으로 예측한 FN는 2개
+* 악성 종양을 정확히 예측한 TP는 72개
+
+
+```python
+tree_report = metrics.classification_report(Y_test, Y_hat)
+print(tree_report)
+```
+
+                  precision    recall  f1-score   support
+    
+               2       0.98      0.97      0.98       131
+               4       0.95      0.97      0.96        74
+    
+        accuracy                           0.97       205
+       macro avg       0.97      0.97      0.97       205
+    weighted avg       0.97      0.97      0.97       205
+    
+    
+
+f1-score 지표를 보면, 양성 종양(2)의 예측도가 0.98이고,  
+악성 종양(4)의 예측도가 0.96이다.  
+예측 능력에 큰 차이가 없다.  
+평균적으로는 0.97의 정확도를 갖는다.
