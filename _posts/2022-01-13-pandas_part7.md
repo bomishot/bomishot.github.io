@@ -1,8 +1,8 @@
 ---
 layout: single
-title:  "jupyter notebook 변환하기!"
+title:  "PART7. 머신러닝(1)-회귀분석"
 categories: coding
-tag: [python, blog, jekyll]
+tag: [python, blog, pandas]
 toc: true
 author_profile: false
 ---
